@@ -1,0 +1,47 @@
+gitignore# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Virtual Environments (Crucial to ignore)
+.venv/
+venv/
+ENV/
+env/
+
+# Environment Variables and Secrets (NEVER commit these)
+.env
+.env.*
+!.env.example
+secrets.json
+
+# FastAPI & Uvicorn specific logs
+*.log
+logs/
+
+# Testing and Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.cache/
+
+# Type Checking
+.mypy_cache/
+.ruff_cache/
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Databases (If using local SQLite for development)
+*.sqlite3
+*.db
