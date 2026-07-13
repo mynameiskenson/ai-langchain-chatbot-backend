@@ -44,7 +44,7 @@ class ConversationService:
                 raise NotFoundException(f"Conversation '{conversation_id}' not found.")
             return await uow.conversations.update(entity, {"title": title})
 
-    async def archive_conversation(self, conversation_id: str): # is_deleted | column
+    async def archive_conversation(self, conversation_id: str):
         async with self.uow_factory() as uow:
             entity = await uow.conversations.get(conversation_id)
             if entity is None:

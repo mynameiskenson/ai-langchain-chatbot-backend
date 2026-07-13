@@ -11,6 +11,7 @@ class Chunk:
         chunk_index (int): The index of the chunk within the document.
         page_number (int | None): The page number of the chunk, if applicable.
         metadata (dict): Additional metadata associated with the chunk.
+        embedding (Embedding | None): The embedding associated with the chunk, if computed.
     """
     content: str
     chunk_index: int

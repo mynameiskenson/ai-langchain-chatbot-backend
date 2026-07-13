@@ -2,7 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.uow.base import UnitOfWork
 from app.modules.conversation.repository import ConversationRepository
-from app.modules.document.repository import DocumentRepository
+from app.modules.document.repository import DocumentChunkRepository, DocumentRepository
 
 
 class SQLAlchemyUnitOfWork(UnitOfWork):
@@ -12,6 +12,7 @@ class SQLAlchemyUnitOfWork(UnitOfWork):
         # repositories bound to the same session
         self.conversations = ConversationRepository(self.session)
         self.documents = DocumentRepository(self.session)
+        self.document_chunks = DocumentChunkRepository(self.session)
 
     async def __aenter__(self):
         return self

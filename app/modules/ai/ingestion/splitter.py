@@ -10,7 +10,7 @@ class TextSplitter(ABC):
     """Abstract base class for text splitters."""
 
     @abstractmethod
-    def split(self, document: list[Document]) -> list[Chunk]:
+    async def split(self, document: list[Document]) -> list[Chunk]:
         """Split a document into chunks."""
         pass
 
@@ -23,7 +23,7 @@ class RecursiveTextSplitter(TextSplitter):
             chunk_overlap=chunk_overlap
         )
 
-    def split(self, documents: list[Document]) -> list[Chunk]:
+    async def split(self, documents: list[Document]) -> list[Chunk]:
         """Split documents into chunks."""
         chunks = []
         for doc in documents:

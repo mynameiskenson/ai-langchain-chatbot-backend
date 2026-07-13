@@ -1,6 +1,10 @@
+import pytest
 from sqlalchemy import text
 
-def test_database_connection(db_session):
+
+@pytest.mark.asyncio
+async def test_database_connection(db_session):
     # Perform a simple query to check database connectivity
-    result = db_session.execute(text('SELECT 1')).scalar()
-    assert result == 1, "Database connection test failed"
+    result = await db_session.execute(text("SELECT 1"))
+    value = result.scalar_one()
+    assert value == 1, "Database connection test failed"

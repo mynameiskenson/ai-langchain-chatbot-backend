@@ -7,14 +7,14 @@ class DocumentLoader(ABC):
     """Abstract base class for document loaders."""
 
     @abstractmethod
-    def load(self, file_path: str) -> list[Document]:
+    async def load(self, file_path: str) -> list[Document]:
         """Load documents from a source."""
         pass
 
 class PDFLoader(DocumentLoader):
     """Concrete implementation of DocumentLoader for PDF files."""
 
-    def load(self, file_path: str) -> list[Document]:
+    async def load(self, file_path: str) -> list[Document]:
         """Load documents from a PDF file."""
         loader = PyPDFLoader(file_path)
-        return loader.load()
+        return await loader.load()
