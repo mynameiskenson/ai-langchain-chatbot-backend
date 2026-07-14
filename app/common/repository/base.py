@@ -22,14 +22,21 @@ class BaseRepository(Generic[model_type]):
 
     async def create(self, entity: model_type) -> model_type:
         self.db.add(entity)
-        await self.db.commit()
+        await self.db.flush()
         await self.db.refresh(entity)
         return entity
+    
+    async def create_many(self, entities: list[model_type]) -> list[model_type]:
+        self.db.add_all(entities)
+        await self.db.flush()
+        for entity in entities:
+            await self.db.refresh(entity)
+        return entities
 
     async def update(self, entity: model_type, obj_in: dict) -> model_type:
         for field, value in obj_in.items():
             setattr(entity, field, value)
-        await self.db.commit()
+        await self.db.flush()
         await self.db.refresh(entity)
         return entity
 
@@ -37,4 +44,4 @@ class BaseRepository(Generic[model_type]):
         entity = await self.get(id)
         if entity:
             await self.db.delete(entity)
-            await self.db.commit()
+            await self.db.flush()

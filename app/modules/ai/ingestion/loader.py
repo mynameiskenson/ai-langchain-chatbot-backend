@@ -4,15 +4,15 @@ from langchain_core.documents import Document
 from langchain_community.document_loaders import PyPDFLoader
 
 class DocumentLoader(ABC):
-    """Abstract base class for document loaders."""
+    """Base class for document loaders."""
 
     @abstractmethod
     async def load(self, file_path: str) -> list[Document]:
-        """Load documents from a source."""
+        """Return a list of `Document` objects from the given path."""
         pass
 
 class PDFLoader(DocumentLoader):
-    """Concrete implementation of DocumentLoader for PDF files."""
+    """Load PDF files into `Document` objects."""
 
     async def load(self, file_path: str) -> list[Document]:
         """Load documents from a PDF file."""

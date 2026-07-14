@@ -1,19 +1,21 @@
 from dataclasses import dataclass
-from app.modules.ai.providers.embeddings.dto import Embedding
+from uuid import UUID
 
 @dataclass(slots=True)
-class Chunk:
-    """A piece of a document used during ingestion.
+class RetrievedChunk:
+    """A chunk returned from retrieval.
 
     Fields:
+    - document_id: source document UUID
     - content: chunk text
     - chunk_index: index within the document
     - page_number: page number or None
-    - metadata: additional metadata dict
-    - embedding: optional Embedding object
+    - metadata: metadata dict
+    - score: relevance score or None
     """
+    document_id: UUID
     content: str
     chunk_index: int
     page_number: int | None
     metadata: dict
-    embedding: Embedding | None = None
+    score: float | None = None

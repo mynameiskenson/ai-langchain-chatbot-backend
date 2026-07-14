@@ -7,15 +7,15 @@ from app.modules.ai.ingestion.dto import Chunk
 from app.core.config import settings
 
 class TextSplitter(ABC):
-    """Abstract base class for text splitters."""
+    """Base class for text splitting implementations."""
 
     @abstractmethod
     async def split(self, document: list[Document]) -> list[Chunk]:
-        """Split a document into chunks."""
+        """Split documents into `Chunk` objects."""
         pass
 
 class RecursiveTextSplitter(TextSplitter):
-    """Concrete implementation of TextSplitter using RecursiveCharacterTextSplitter."""
+    """Split text using a recursive character splitter."""
 
     def __init__(self, chunk_size: int = settings.ai.CHUNKSIZE, chunk_overlap: int = settings.ai.CHUNK_OVERLAP):
         self.splitter = RecursiveCharacterTextSplitter(
@@ -24,7 +24,7 @@ class RecursiveTextSplitter(TextSplitter):
         )
 
     async def split(self, documents: list[Document]) -> list[Chunk]:
-        """Split documents into chunks."""
+        """Return a list of `Chunk` for the provided documents."""
         chunks = []
         for doc in documents:
             split_texts = self.splitter.split_text(doc.page_content)

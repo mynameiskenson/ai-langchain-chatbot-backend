@@ -26,9 +26,7 @@ class IngestionService:
     ):
         """Create an ingestion service.
 
-        You can either pass an `EmbeddingProvider` instance directly via
-        `embedding_provider`, or provide a `provider_name` (string) which will
-        be used with `EmbeddingFactory.create(provider_name)` to construct one.
+        Pass either an `embedding_provider` instance or a `provider_name` string.
         """
         self.uow_factory = uow_factory
         self.loader = loader
@@ -40,9 +38,7 @@ class IngestionService:
             self.embedding_provider = embedding_provider
 
     async def process_documents(self, file_path: str, document_id: UUID) -> list[Chunk]:
-        """Load a document from a file, split it into chunks, and optionally
-        compute embeddings for each chunk.
-        """
+        """Load a file, split it into chunks, compute embeddings, and save them."""
         documents = await self.loader.load(file_path)
         chunks = await self.splitter.split(documents)
 

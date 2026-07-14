@@ -8,8 +8,7 @@ from app.modules.conversation.models import Conversation
 
 class ConversationService:
     def __init__(self, uow_factory: Callable[[], UnitOfWork]):
-        """uow_factory should be a zero-arg callable returning an async context manager
-        that yields a UnitOfWork (for example `get_uow`)."""
+        """Initialize ConversationService with a unit-of-work factory."""
         self.uow_factory = uow_factory
 
     async def create_conversation(self, title: str, owner_id: str):

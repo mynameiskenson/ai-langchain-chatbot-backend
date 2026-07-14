@@ -26,8 +26,7 @@ class DocumentService:
     # ------------------------------------------------------------------
 
     async def upload_document(self, file: UploadFile, owner_id: str) -> Document:
-        """Persist the file and record its metadata. Returns a Document in
-        UPLOADED status, ready to be picked up by the ingestion pipeline."""
+        """Save an uploaded file and create a `Document` record (status UPLOADED)."""
         if not owner_id or owner_id.strip() == "":
             raise ValidationException("Owner ID cannot be empty.")
 

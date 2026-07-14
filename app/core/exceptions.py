@@ -50,16 +50,7 @@ class ValidationException(ApplicationError):
         super().__init__(message=message, status_code=422)
 
 async def app_exception_handler(request: Request, exc: ApplicationError):
-    """
-    Exception handler for ApplicationError.
-
-    Args:
-        request (Request): The incoming request.
-        exc (ApplicationError): The raised ApplicationError exception.
-
-    Returns:
-        JSONResponse: A JSON response with the error message and status code.
-    """
+    """Handle ApplicationError and return a JSON error response."""
     logger.error(f"ApplicationError: {exc.message}")
     return JSONResponse(
         status_code=exc.status_code,
@@ -70,16 +61,7 @@ async def app_exception_handler(request: Request, exc: ApplicationError):
     )
 
 async def generic_exception_handler(request: Request, exc: Exception):
-    """
-    Generic exception handler for unhandled exceptions.
-
-    Args:
-        request (Request): The incoming request.
-        exc (Exception): The raised exception.
-
-    Returns:
-        JSONResponse: A JSON response with the error message and status code.
-    """
+    """Handle unexpected exceptions and return a 500 JSON response."""
     logger.error(f"Unhandled exception: {exc}")
     return JSONResponse(
         status_code=500,
@@ -90,11 +72,6 @@ async def generic_exception_handler(request: Request, exc: Exception):
     )
 
 def register_exception_handlers(app: FastAPI):
-    """
-    Register exception handlers for the FastAPI application.
-
-    Args:
-        app (FastAPI): The FastAPI application instance.
-    """
+    """Attach custom exception handlers to the FastAPI app."""
     app.add_exception_handler(ApplicationError, app_exception_handler)
     app.add_exception_handler(Exception, generic_exception_handler)

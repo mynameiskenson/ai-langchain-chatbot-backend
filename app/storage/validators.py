@@ -6,10 +6,7 @@ MAX_FILE_SIZE = 10 * 1024 * 1024
 
 
 async def validate_upload(file: UploadFile) -> UploadFile:
-    """FastAPI dependency — validates file type and size at the HTTP boundary.
-    Raises ValidationException (returns ApiResponse error) on failure.
-    Resets the file stream so the service can read it normally.
-    """
+    """Validate uploaded file type and size; raise `ValidationException` on failure."""
     if file.content_type not in ALLOWED_TYPES:
         raise ValidationException("Invalid file type. Only PDF files are allowed.")
 
