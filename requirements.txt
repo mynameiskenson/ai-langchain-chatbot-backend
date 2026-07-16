@@ -4,12 +4,15 @@ aiosignal==1.4.0
 alembic==1.18.5
 annotated-doc==0.0.4
 annotated-types==0.7.0
+anthropic==0.116.0
 anyio==4.14.1
 attrs==26.1.0
 certifi==2026.6.17
 charset-normalizer==3.4.9
 click==8.4.2
 distro==1.9.0
+docstring_parser==0.18.0
+docx2txt==0.9
 fastapi==0.139.0
 frozenlist==1.8.0
 greenlet==3.5.3
@@ -20,8 +23,10 @@ httpx==0.28.1
 httpx-sse==0.4.3
 idna==3.18
 iniconfig==2.3.0
+jiter==0.16.0
 jsonpatch==1.33
 jsonpointer==3.1.1
+langchain-anthropic==1.4.8
 langchain-classic==1.0.8
 langchain-community==0.4.2
 langchain-core==1.4.9

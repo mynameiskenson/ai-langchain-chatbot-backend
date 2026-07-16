@@ -6,8 +6,8 @@ class DocumentRepository(BaseRepository[Document]):
     def __init__(self, db):
         super().__init__(db, Document)
     
-    async def get_document_by_owner(self, owner_id: str) -> list[Document]:
-        stmt = select(Document).filter(Document.owner_id == owner_id)
+    async def get_document_by_user(self, user_id: str) -> list[Document]:
+        stmt = select(Document).filter(Document.user_id == user_id)
         result = await self.db.scalars(stmt)
         return result.all()
     

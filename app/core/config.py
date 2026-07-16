@@ -14,6 +14,7 @@ class AppSettings(BaseModel):
 class AISettings(BaseModel):
     ANTHROPIC_API_KEY: str
     ANTHROPIC_MODEL: str
+    EMBEDDING_PROVIDER: str
     EMBEDDING_MODEL: str
     EMBEDDING_DIMENSION: int
     CHUNKSIZE: int

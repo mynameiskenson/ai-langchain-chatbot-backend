@@ -16,6 +16,6 @@ class RetrievedChunk:
     document_id: UUID
     content: str
     chunk_index: int
-    page_number: int | None
     metadata: dict
+    page_number: int | None
     score: float | None = None

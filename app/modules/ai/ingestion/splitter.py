@@ -28,12 +28,25 @@ class RecursiveTextSplitter(TextSplitter):
         chunks = []
         for doc in documents:
             split_texts = self.splitter.split_text(doc.page_content)
+            page_number = self._resolve_page_number(doc.metadata)
             for index, text in enumerate(split_texts):
                 chunk = Chunk(
                     content=text,
                     chunk_index=index,
-                    page_number=doc.metadata.get("page_number"),
+                    page_number=page_number,
                     metadata=doc.metadata
                 )
                 chunks.append(chunk)
         return chunks
+
+    @staticmethod
+    def _resolve_page_number(metadata: dict) -> int | None:
+        """Resolve a 1-indexed page number from loader metadata.
+
+        `PyPDFLoader` sets a 0-indexed "page" key; other loaders (e.g. DOCX)
+        have no page concept and won't set either key.
+        """
+        if metadata.get("page_number") is not None:
+            return metadata["page_number"]
+        page = metadata.get("page")
+        return page + 1 if page is not None else None

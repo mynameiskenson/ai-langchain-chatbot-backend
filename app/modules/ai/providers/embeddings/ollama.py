@@ -11,10 +11,10 @@ class OllamaEmbeddingProvider(EmbeddingProvider):
         self.dimension = settings.ai.EMBEDDING_DIMENSION
         self.embeddings = OllamaEmbeddings(model=self.model)
 
-    def embed_documents(self, documents: list[str]) -> list[list[float]]:
+    async def embed_documents(self, documents: list[str]) -> list[list[float]]:
         """Return embeddings for multiple documents."""
-        return self.embeddings.embed_documents(documents)
+        return await self.embeddings.aembed_documents(documents)
 
-    def embed_query(self, query: str) -> list[float]:
+    async def embed_query(self, query: str) -> list[float]:
         """Return an embedding for a single query."""
-        return self.embeddings.embed_query(query)
+        return await self.embeddings.aembed_query(query)

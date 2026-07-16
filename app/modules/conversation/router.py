@@ -15,7 +15,7 @@ service = ConversationService(uow_factory=get_uow)
         description="Create a new conversation."
     )
 async def create_conversation(conversation: ConversationCreateSchema):
-    result = await service.create_conversation(title=conversation.title, owner_id=conversation.owner_id)
+    result = await service.create_conversation(title=conversation.title, user_id=conversation.user_id)
     return ApiResponse(data=ConversationResponseSchema.model_validate(result))
 
 @conversation_router.get(
@@ -29,13 +29,13 @@ async def get_conversation(conversation_id: str):
     return ApiResponse(data=ConversationResponseSchema.model_validate(result))
 
 @conversation_router.get(
-        "/conversations/owner/{owner_id}", 
+        "/conversations/user/{user_id}", 
         response_model=ApiResponse[list[ConversationResponseSchema]], 
-        summary="Get Conversations by Owner", 
-        description="Retrieve all conversations for a specific owner."
+        summary="Get Conversations by User", 
+        description="Retrieve all conversations for a specific user."
     )
-async def get_conversations_by_owner(owner_id: str):
-    result = await service.get_conversations_by_owner(owner_id)
+async def get_conversations_by_user(user_id: str):
+    result = await service.get_conversations_by_user(user_id)
     return ApiResponse(data=[ConversationResponseSchema.model_validate(convo) for convo in result])
 
 @conversation_router.put(

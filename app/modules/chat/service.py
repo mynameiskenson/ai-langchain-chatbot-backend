@@ -27,9 +27,9 @@ class ChatService:
             llm_provider=self.llm_provider,
         )
 
-    async def ask(self, query: str, top_k: int = 5, owner_id: str | None = None):
+    async def ask(self, query: str, top_k: int = 5, user_id: str | None = None):
         """Run a RAG-backed query and return the RAGResponse DTO."""
         from app.modules.ai.rag.dto import RAGRequest
 
-        request = RAGRequest(query=query, owner_id=owner_id, top_k=top_k)
+        request = RAGRequest(query=query, user_id=user_id, top_k=top_k)
         return await self.rag_service.ask(request)

@@ -7,6 +7,6 @@ class DocumentResponseSchema(BaseModel):
     original_filename: str
     mime_type: str
     file_size: int
-    owner_id: str
+    user_id: str
     status: str
     model_config = {"from_attributes": True}

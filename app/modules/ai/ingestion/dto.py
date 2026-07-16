@@ -14,6 +14,6 @@ class Chunk:
     """
     content: str
     chunk_index: int
-    page_number: int | None
     metadata: dict
+    page_number: int | None
     embedding: Embedding | None = None

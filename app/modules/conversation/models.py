@@ -19,5 +19,5 @@ class Conversation(BaseModel):
     
     title: Mapped[str] = mapped_column(String(255), nullable=False)
 
-    owner_id: Mapped[str] = mapped_column(String(255), nullable=False, index=True) #user_id
+    user_id: Mapped[str] = mapped_column(String(255), nullable=True, index=True)
 

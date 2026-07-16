@@ -11,13 +11,13 @@ class ConversationService:
         """Initialize ConversationService with a unit-of-work factory."""
         self.uow_factory = uow_factory
 
-    async def create_conversation(self, title: str, owner_id: str):
+    async def create_conversation(self, title: str, user_id: str):
         if title is None or title.strip() == "":
             raise ValidationException("Conversation title cannot be empty.")
-        if owner_id is None or owner_id.strip() == "":
-            raise ValidationException("Owner ID cannot be empty.")
+        if user_id is None or user_id.strip() == "":
+            raise ValidationException("User ID cannot be empty.")
         async with self.uow_factory() as uow:
-            convo = Conversation(title=title, owner_id=owner_id)
+            convo = Conversation(title=title, user_id=user_id)
             return await uow.conversations.create(convo)
 
     async def get_conversation(self, conversation_id: str):
@@ -27,13 +27,13 @@ class ConversationService:
                 raise NotFoundException(f"Conversation '{conversation_id}' not found.")
             return entity
         
-    async def get_conversations_by_owner(self, owner_id: str):
-        if not owner_id or owner_id.strip() == "":
-            raise ValidationException("Owner ID cannot be empty.")
+    async def get_conversations_by_user(self, user_id: str):
+        if not user_id or user_id.strip() == "":
+            raise ValidationException("User ID cannot be empty.")
         async with self.uow_factory() as uow:
-            result = await uow.conversations.get_conversations_by_owner(owner_id)
+            result = await uow.conversations.get_conversations_by_user(user_id)
             if not result:
-                raise NotFoundException(f"No conversations found for owner '{owner_id}'.")
+                raise NotFoundException(f"No conversations found for user '{user_id}'.")
             return result
 
     async def update_conversation(self, conversation_id: str, title: str = None):

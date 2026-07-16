@@ -1,39 +1,41 @@
+from __future__ import annotations
+
 from typing import Generic, TypeVar
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-model_type = TypeVar("model_type")
+ModelType = TypeVar("ModelType")
 
 
-class BaseRepository(Generic[model_type]):
-    def __init__(self, db: AsyncSession, model: model_type):
+class BaseRepository(Generic[ModelType]):
+    def __init__(self, db: AsyncSession, model: type[ModelType]):
         self.db = db
         self.model = model
 
-    async def list(self) -> list[model_type]:
+    async def list(self) -> list[ModelType]:
         stmt = select(self.model)
         result = await self.db.scalars(stmt)
         return result.all()
 
-    async def get(self, id: int) -> model_type:
+    async def get(self, id: int) -> ModelType:
         stmt = select(self.model).filter(self.model.id == id)
         result = await self.db.scalars(stmt)
         return result.first()
 
-    async def create(self, entity: model_type) -> model_type:
+    async def create(self, entity: ModelType) -> ModelType:
         self.db.add(entity)
         await self.db.flush()
         await self.db.refresh(entity)
         return entity
     
-    async def create_many(self, entities: list[model_type]) -> list[model_type]:
+    async def create_many(self, entities: list[ModelType]) -> list[ModelType]:
         self.db.add_all(entities)
         await self.db.flush()
         for entity in entities:
             await self.db.refresh(entity)
         return entities
 
-    async def update(self, entity: model_type, obj_in: dict) -> model_type:
+    async def update(self, entity: ModelType, obj_in: dict) -> ModelType:
         for field, value in obj_in.items():
             setattr(entity, field, value)
         await self.db.flush()

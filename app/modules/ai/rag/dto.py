@@ -9,12 +9,12 @@ class RAGRequest:
 
     Fields:
     - query: the user's question or search text
-    - owner_id: optional owner identifier
+    - user_id: optional user identifier
     - top_k: how many top chunks to retrieve
     """
     query: str
-    owner_id: str | None = None
     top_k: int
+    user_id: str | None = None
 
 @dataclass(slots=True)
 class RAGResponse:

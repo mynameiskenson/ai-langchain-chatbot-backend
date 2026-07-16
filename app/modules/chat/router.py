@@ -16,5 +16,5 @@ service = ChatService()
     description="Ask a question using Retrieval-Augmented Generation (RAG).",
 )
 async def ask_chat(request: ChatRequestSchema):
-    result = await service.ask(query=request.query, top_k=request.top_k, owner_id=request.owner_id)
+    result = await service.ask(query=request.query, top_k=request.top_k, user_id=request.user_id)
     return ApiResponse(data=ChatResultSchema.model_validate(result))

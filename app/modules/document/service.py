@@ -25,10 +25,10 @@ class DocumentService:
     # Upload workflow
     # ------------------------------------------------------------------
 
-    async def upload_document(self, file: UploadFile, owner_id: str) -> Document:
+    async def upload_document(self, file: UploadFile, user_id: str) -> Document:
         """Save an uploaded file and create a `Document` record (status UPLOADED)."""
-        if not owner_id or owner_id.strip() == "":
-            raise ValidationException("Owner ID cannot be empty.")
+        if not user_id or user_id.strip() == "":
+            raise ValidationException("User ID cannot be empty.")
 
         suffix = Path(file.filename).suffix
         stored_filename = f"{uuid4()}{suffix}"
@@ -44,7 +44,7 @@ class DocumentService:
                 file_size=file.size,
                 storage_provider=settings.storage.PROVIDER,
                 storage_path=storage_path,
-                owner_id=owner_id,
+                user_id=user_id,
                 status=DocumentStatus.UPLOADED,
             )
             return await uow.documents.create(doc)
@@ -60,11 +60,11 @@ class DocumentService:
                 raise NotFoundException(f"Document '{document_id}' not found.")
             return entity
 
-    async def list_documents(self, owner_id: str) -> list[Document]:
+    async def list_documents(self, user_id: str) -> list[Document]:
         async with self.uow_factory() as uow:
-            result = await uow.documents.get_document_by_owner(owner_id)
+            result = await uow.documents.get_document_by_user(user_id)
             if not result:
-                raise NotFoundException(f"No documents found for owner '{owner_id}'.")
+                raise NotFoundException(f"No documents found for user '{user_id}'.")
             return result
 
     # ------------------------------------------------------------------
@@ -91,3 +91,20 @@ class DocumentService:
             if entity is None:
                 raise NotFoundException(f"Document '{document_id}' not found.")
             return await uow.documents.update(entity, {"status": DocumentStatus.FAILED})
+
+    # ------------------------------------------------------------------
+    # Rollback / cleanup
+    # ------------------------------------------------------------------
+
+    async def delete_document(self, document_id: str) -> None:
+        """Delete a document's stored file and its database record.
+
+        Used to roll back a document that was saved as part of a batch
+        upload when a later file in the same batch fails.
+        """
+        async with self.uow_factory() as uow:
+            entity = await uow.documents.get(document_id)
+            if entity is None:
+                return
+            await self.storage.delete(entity.storage_path)
+            await uow.documents.delete(document_id)

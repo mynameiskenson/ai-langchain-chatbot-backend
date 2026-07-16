@@ -7,7 +7,7 @@ from pydantic import BaseModel
 class ChatRequestSchema(BaseModel):
     query: str
     top_k: int = 5
-    owner_id: Optional[str] = None
+    user_id: Optional[str] = None
 
 
 class RetrievedChunkSchema(BaseModel):

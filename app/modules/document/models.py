@@ -24,7 +24,7 @@ class Document(BaseModel):
         default=DocumentStatus.UPLOADED
     )
 
-    owner_id: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    user_id: Mapped[str] = mapped_column(String(255), nullable=True, index=True)
 
     original_filename: Mapped[str] = mapped_column(String(255), nullable=False)
 
@@ -55,7 +55,7 @@ class DocumentChunk(BaseModel):
 
     chunk_index: Mapped[int] = mapped_column(Integer, nullable=False)
 
-    page_number: Mapped[int] = mapped_column(Integer)
+    page_number: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     content: Mapped[str] = mapped_column(Text, nullable=False)
 

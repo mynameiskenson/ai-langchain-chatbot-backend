@@ -10,7 +10,7 @@ async def test_document_chunk_repository(test_uow):
     async with test_uow as uow:
         # Create a parent document so the chunk can reference a UUID
         doc = Document(
-            owner_id="test-owner",
+            user_id="test-owner",
             original_filename="test.pdf",
             stored_filename="test-stored.pdf",
             mime_type="application/pdf",
