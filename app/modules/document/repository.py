@@ -1,3 +1,5 @@
+import datetime
+
 from app.common.repository.base import BaseRepository
 from app.modules.document.models import Document
 from sqlalchemy import select
@@ -21,6 +23,10 @@ class DocumentChunkRepository(BaseRepository[DocumentChunk]):
         stmt = select(DocumentChunk).filter(DocumentChunk.document_id == document_id)
         result = await self.db.scalars(stmt)
         chunks_to_delete = result.all()
+
         for chunk in chunks_to_delete:
-            await self.db.delete(chunk)
+            chunk.is_deleted = True
+            chunk.deleted_at = datetime.utcnow()
+            chunk.deleted_by = "system"  # or use doc.user_id if you want to track the user who deleted it
+        
         await self.db.commit()
