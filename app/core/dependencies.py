@@ -47,6 +47,28 @@ def get_vector_store() -> VectorStoreProvider:
     return VectorStoreFactory.create(settings.database.VECTOR_DB, uow_factory=get_uow)
 
 # ======================================================
+# Embedding provider dependency
+# ======================================================
+from app.modules.ai.providers.embeddings.base import EmbeddingProvider
+from app.modules.ai.providers.embeddings.factory import EmbeddingFactory
+
+
+def get_embedding_provider() -> EmbeddingProvider:
+    """Return a configured EmbeddingProvider instance based on settings."""
+    return EmbeddingFactory.create(settings.ai.EMBEDDING_PROVIDER)
+
+# ======================================================
+# LLM provider dependency
+# ======================================================
+from app.modules.ai.providers.llm.base import LLMProvider
+from app.modules.ai.providers.llm.factory import LLMFactory
+
+
+def get_llm_provider() -> LLMProvider:
+    """Return a configured LLMProvider instance based on settings."""
+    return LLMFactory.create(settings.ai.LLM_PROVIDER)
+
+# ======================================================
 # Storage provider dependency
 # ======================================================
 from app.storage.factory import get_storage

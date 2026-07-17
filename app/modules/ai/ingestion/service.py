@@ -11,7 +11,6 @@ from uuid import UUID
 
 from app.modules.document.models import DocumentChunk, DocumentStatus
 
-from app.modules.ai.providers.embeddings.factory import EmbeddingFactory
 from app.modules.ai.providers.embeddings.base import EmbeddingProvider
 from app.modules.ai.providers.embeddings.dto import Embedding as EmbeddingDTO
 
@@ -26,27 +25,23 @@ class IngestionService:
         loader: DocumentLoader,
         splitter: TextSplitter,
         vector_store: VectorStoreProvider,
-        embedding_provider: EmbeddingProvider | None = None,
-        provider_name: str | None = None,
+        embedding_provider: EmbeddingProvider,
         document_service: Optional[object] = None,
     ):
         """Create an ingestion service.
 
-        Pass either an `embedding_provider` instance or a `provider_name` string.
-        `vector_store` is the pluggable backend (pgvector/Qdrant/Pinecone) that
-        embeddings are upserted into.
+        `embedding_provider` and `vector_store` must be fully constructed
+        provider instances (built via their respective factories, e.g.
+        `app.core.dependencies.get_embedding_provider`/`get_vector_store`) -
+        this service does not select/construct providers itself.
         """
         self.uow_factory = uow_factory
         self.loader = loader
         self.splitter = splitter
         self.vector_store = vector_store
+        self.embedding_provider = embedding_provider
         # Optional higher-level DocumentService for lifecycle updates
         self.document_service = document_service
-
-        if provider_name is not None:
-            self.embedding_provider = EmbeddingFactory.create(provider_name)
-        else:
-            self.embedding_provider = embedding_provider
 
     async def process_documents(self, file_path: str, document_id: UUID) -> list[Chunk]:
         """Load a file, split it into chunks, compute embeddings, and save them.

@@ -4,17 +4,17 @@ from app.modules.ai.prompt.dto import PromptRequest
 from app.modules.ai.retrieval.service import RetrievalService
 from app.modules.ai.prompt.service import PromptService
 from app.modules.ai.providers.llm.base import LLMProvider
-from app.modules.ai.providers.llm.factory import LLMFactory
 
 class RAGService:
-    def __init__(self, retrieval_service: RetrievalService, prompt_service: PromptService, llm_provider: LLMProvider, provider_name: str | None = None):
+    def __init__(self, retrieval_service: RetrievalService, prompt_service: PromptService, llm_provider: LLMProvider):
+        """`llm_provider` must be a fully constructed provider instance (built via
+        `app.modules.ai.providers.llm.factory.LLMFactory`, e.g. through
+        `app.core.dependencies.get_llm_provider`) - this service does not
+        select/construct providers itself.
+        """
         self.retrieval_service = retrieval_service
         self.prompt_service = prompt_service
-
-        if provider_name is not None:
-            self.llm_provider = LLMFactory.create(provider_name)
-        else:
-            self.llm_provider = llm_provider
+        self.llm_provider = llm_provider
 
     async def ask(self, request: RAGRequest) -> RAGResponse:
         # Step 1: Retrieve relevant chunks based on the query
