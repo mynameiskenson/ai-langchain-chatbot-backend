@@ -61,7 +61,7 @@ class DocumentChunk(BaseModel):
 
     content_hash: Mapped[str] = mapped_column(String(64))
 
-    embedding: Mapped[list[float]] = mapped_column(Vector(settings.ai.EMBEDDING_DIMENSION), nullable=False)
+    embedding: Mapped[list[float] | None] = mapped_column(Vector(settings.ai.EMBEDDING_DIMENSION), nullable=True)
 
     chunk_metadata: Mapped[dict] = mapped_column("metadata", JSONB, default=dict)
 

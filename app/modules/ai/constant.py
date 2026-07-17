@@ -6,3 +6,9 @@ class AIProviderType(StrEnum):
     OPENAI = "openai"
     AZURE_OPENAI = "azure_openai"
     OLLAMA = "ollama"
+
+
+class VectorDBProviderType(StrEnum):
+    PGVECTOR = "pgvector"
+    QDRANT = "qdrant"
+    PINECONE = "pinecone"

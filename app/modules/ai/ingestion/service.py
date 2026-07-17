@@ -15,6 +15,9 @@ from app.modules.ai.providers.embeddings.factory import EmbeddingFactory
 from app.modules.ai.providers.embeddings.base import EmbeddingProvider
 from app.modules.ai.providers.embeddings.dto import Embedding as EmbeddingDTO
 
+from app.modules.ai.providers.vectorstore.base import VectorStoreProvider
+from app.modules.ai.providers.vectorstore.dto import VectorRecord
+
 
 class IngestionService:
     def __init__(
@@ -22,6 +25,7 @@ class IngestionService:
         uow_factory: Callable[[], UnitOfWork],
         loader: DocumentLoader,
         splitter: TextSplitter,
+        vector_store: VectorStoreProvider,
         embedding_provider: EmbeddingProvider | None = None,
         provider_name: str | None = None,
         document_service: Optional[object] = None,
@@ -29,10 +33,13 @@ class IngestionService:
         """Create an ingestion service.
 
         Pass either an `embedding_provider` instance or a `provider_name` string.
+        `vector_store` is the pluggable backend (pgvector/Qdrant/Pinecone) that
+        embeddings are upserted into.
         """
         self.uow_factory = uow_factory
         self.loader = loader
         self.splitter = splitter
+        self.vector_store = vector_store
         # Optional higher-level DocumentService for lifecycle updates
         self.document_service = document_service
 
@@ -78,7 +85,8 @@ class IngestionService:
                 for chunk, vec in zip(chunks, vectors):
                     chunk.embedding = EmbeddingDTO(vector=vec, model=model, dimension=dimension)
 
-            # Persist the chunks to the database
+            # Persist the chunk rows (content/metadata) to the relational database.
+            # Embeddings are NOT stored here; they are delegated to the vector store.
             entities = []
             for chunk in chunks:
                 entities.append(
@@ -89,17 +97,35 @@ class IngestionService:
                         chunk_index=chunk.chunk_index,
                         page_number=chunk.page_number,
                         chunk_metadata=chunk.metadata,
-                        embedding=(chunk.embedding.vector if chunk.embedding else None),
                     )
                 )
 
-            # Persist the chunks to the database and mark document READY
             async with self.uow_factory() as uow:
-                await uow.document_chunks.create_many(entities)
-                # mark ready via DocumentService when present, else uow
-                if self.document_service is not None:
-                    await self.document_service.mark_ready(str(document_id))
-                else:
+                created = await uow.document_chunks.create_many(entities)
+
+            # Upsert embeddings (+ duplicated content/metadata) into the vector store
+            if self.embedding_provider and created:
+                records = [
+                    VectorRecord(
+                        chunk_id=entity.id,
+                        document_id=document_id,
+                        embedding=chunk.embedding.vector,
+                        content=chunk.content,
+                        chunk_index=chunk.chunk_index,
+                        page_number=chunk.page_number,
+                        metadata=chunk.metadata,
+                    )
+                    for entity, chunk in zip(created, chunks)
+                    if chunk.embedding is not None
+                ]
+                if records:
+                    await self.vector_store.upsert(records)
+
+            # mark ready via DocumentService when present, else uow
+            if self.document_service is not None:
+                await self.document_service.mark_ready(str(document_id))
+            else:
+                async with self.uow_factory() as uow:
                     await uow.documents.update(await uow.documents.get(document_id), {"status": DocumentStatus.READY})
 
             return chunks

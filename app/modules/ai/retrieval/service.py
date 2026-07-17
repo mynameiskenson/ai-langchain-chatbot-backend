@@ -5,20 +5,26 @@ from app.uow.base import UnitOfWork
 from app.modules.ai.providers.embeddings.factory import EmbeddingFactory
 from app.modules.ai.providers.embeddings.base import EmbeddingProvider
 
+from app.modules.ai.providers.vectorstore.base import VectorStoreProvider
+
 from app.modules.ai.retrieval.dto import RetrievedChunk
 
 class RetrievalService:
     def __init__(
         self,
         uow_factory: Callable[[], UnitOfWork],
+        vector_store: VectorStoreProvider,
         embedding_provider: EmbeddingProvider | None = None,
         provider_name: str | None = None,
     ):
         """Create a retrieval service.
 
         Pass `embedding_provider` or `provider_name` to set the embedding backend.
+        `vector_store` is the pluggable backend (pgvector/Qdrant/Pinecone) used
+        for similarity search.
         """
         self.uow_factory = uow_factory
+        self.vector_store = vector_store
 
         if provider_name is not None:
             self.embedding_provider = EmbeddingFactory.create(provider_name)
@@ -33,16 +39,15 @@ class RetrievalService:
         # Compute the embedding for the query
         query_embedding = await self.embedding_provider.embed_query(query)
 
-        # Perform similarity search in the database
-        async with self.uow_factory() as uow:
-            chunks = await uow.retrieval_chunks.similarity_search(query_embedding, top_k=top_k)
+        # Perform similarity search via the configured vector store
+        results = await self.vector_store.search(query_embedding, top_k=top_k)
 
-        # Convert the retrieved chunks to RetrievedChunk DTOs
+        # Convert the retrieved results to RetrievedChunk DTOs
         return [RetrievedChunk(
-            document_id=chunk.document_id,
-            content=chunk.content,
-            chunk_index=chunk.chunk_index,
-            page_number=chunk.page_number,
-            metadata=chunk.metadata,
-            score=chunk.score,
-        ) for chunk in chunks]
+            document_id=result.document_id,
+            content=result.content,
+            chunk_index=result.chunk_index,
+            page_number=result.page_number,
+            metadata=result.metadata,
+            score=result.score,
+        ) for result in results]

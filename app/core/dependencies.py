@@ -32,6 +32,21 @@ async def get_uow() -> AsyncGenerator[SQLAlchemyUnitOfWork, None]:
             yield uow
 
 # ======================================================
+# Vector store provider dependency
+# ======================================================
+from app.modules.ai.providers.vectorstore.base import VectorStoreProvider
+from app.modules.ai.providers.vectorstore.factory import VectorStoreFactory
+
+
+def get_vector_store() -> VectorStoreProvider:
+    """Return a configured VectorStoreProvider instance based on settings.
+
+    Independent from the relational DB provider (`settings.database.PROVIDER`);
+    this only controls where embeddings are stored/searched.
+    """
+    return VectorStoreFactory.create(settings.database.VECTOR_DB, uow_factory=get_uow)
+
+# ======================================================
 # Storage provider dependency
 # ======================================================
 from app.storage.factory import get_storage

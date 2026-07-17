@@ -4,7 +4,7 @@ from app.modules.ai.prompt.service import PromptService
 from app.modules.ai.providers.llm.factory import LLMFactory
 from app.modules.ai.constant import AIProviderType
 
-from app.core.dependencies import get_uow
+from app.core.dependencies import get_uow, get_vector_store
 
 from app.core.config import settings
 
@@ -15,7 +15,11 @@ class ChatService:
     def __init__(self):
         # Create components using sensible defaults from config/constants.
         # Embedding provider: try OLLAMA (can be adjusted later).
-        self.retrieval_service = RetrievalService(uow_factory=get_uow, provider_name=AIProviderType.OLLAMA.value)
+        self.retrieval_service = RetrievalService(
+            uow_factory=get_uow,
+            vector_store=get_vector_store(),
+            provider_name=AIProviderType.OLLAMA.value,
+        )
         self.prompt_service = PromptService()
 
         # LLM provider: default to Anthropic (changeable via factory)

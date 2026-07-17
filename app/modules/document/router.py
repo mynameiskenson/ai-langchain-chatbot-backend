@@ -1,7 +1,7 @@
 from fastapi import APIRouter, UploadFile, BackgroundTasks, File
 
 from app.schemas.response import ApiResponse
-from app.core.dependencies import get_storage_provider, get_uow
+from app.core.dependencies import get_storage_provider, get_uow, get_vector_store
 from app.storage.validators import validate_upload
 from app.modules.document.service import DocumentService
 from app.modules.document.schemas import DocumentResponseSchema
@@ -18,6 +18,7 @@ ingestion = IngestionService(
     uow_factory=get_uow,
     loader=AutoLoader(),
     splitter=RecursiveTextSplitter(),
+    vector_store=get_vector_store(),
     provider_name=settings.ai.EMBEDDING_PROVIDER,
     document_service=service,
 )

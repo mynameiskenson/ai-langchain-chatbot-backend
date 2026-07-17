@@ -1,5 +1,5 @@
 from functools import lru_cache
-from pydantic import BaseModel, computed_field
+from pydantic import BaseModel, computed_field, model_validator
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -26,6 +26,11 @@ class DatabaseSettings(BaseModel):
     USER: str
     PASSWORD: str
     NAME: str
+    # Relational CRUD backend: postgres | sqlserver | mongodb.
+    # Independent from VECTOR_DB below.
+    PROVIDER: str = "postgres"
+    # Vector store backend used for embedding storage/similarity search: pgvector | qdrant | pinecone.
+    # Independent from PROVIDER above (e.g. Postgres relational DB + Qdrant vectors is valid).
     VECTOR_DB: str
 
     @computed_field
@@ -56,6 +61,18 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         extra="ignore",
     )
+
+    @model_validator(mode="after")
+    def _validate_vector_db_provider_combo(self) -> "Settings":
+        vector_db = self.database.VECTOR_DB.lower()
+        provider = self.database.PROVIDER.lower()
+        if vector_db == "pgvector" and provider != "postgres":
+            raise ValueError(
+                "Invalid configuration: database.VECTOR_DB='pgvector' requires "
+                "database.PROVIDER='postgres' (pgvector stores vectors in the "
+                f"same Postgres database). Got database.PROVIDER='{self.database.PROVIDER}'."
+            )
+        return self
 
 @lru_cache()
 def get_settings() -> Settings:
