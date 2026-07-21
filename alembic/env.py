@@ -11,6 +11,7 @@ from app.database.base import Base
 # Import all model modules so Alembic's autogenerate can see them
 import app.modules.conversation.models  # registers Conversation on Base.metadata
 import app.modules.document.models  # registers Document on Base.metadata
+import app.modules.message.models  # registers Message on Base.metadata
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

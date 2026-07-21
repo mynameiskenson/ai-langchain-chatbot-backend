@@ -1,6 +1,7 @@
 from dataclasses import dataclass
+from typing import AsyncGenerator
 
-from app.modules.ai.providers.llm.dto import ChatResponse
+from app.modules.ai.providers.llm.dto import ChatResponse, ChatStreamChunk
 from app.modules.ai.retrieval.dto import RetrievedChunk
 
 @dataclass(slots=True)
@@ -25,4 +26,15 @@ class RAGResponse:
     - retrieved_chunks: list of `RetrievedChunk` DTOs
     """
     response: ChatResponse
+    retrieved_chunks: list[RetrievedChunk]
+
+@dataclass(slots=True)
+class RAGStreamResponse:
+    """Response from streaming RAG containing the chunk generator and the retrieved chunks.
+
+    Fields:
+    - chunks: async generator of `ChatStreamChunk` DTOs from the LLM
+    - retrieved_chunks: list of `RetrievedChunk` DTOs
+    """
+    chunks: AsyncGenerator[ChatStreamChunk, None]
     retrieved_chunks: list[RetrievedChunk]

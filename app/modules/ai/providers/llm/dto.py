@@ -17,3 +17,11 @@ class ChatResponse:
     model: str
     finish_reason: str | None
     usage: TokenUsage | None = None
+
+@dataclass(slots=True)
+class ChatStreamChunk:
+    content: str
+    model: str
+    finish_reason: str | None = None
+    is_final: bool = False
+    usage: TokenUsage | None = None

@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime, timezone
 
 from app.common.repository.base import BaseRepository
 from app.modules.document.models import Document
@@ -26,7 +26,7 @@ class DocumentChunkRepository(BaseRepository[DocumentChunk]):
 
         for chunk in chunks_to_delete:
             chunk.is_deleted = True
-            chunk.deleted_at = datetime.datetime.utcnow()
+            chunk.deleted_at = datetime.now(timezone.utc)
             chunk.deleted_by = "system"  # or use doc.user_id if you want to track the user who deleted it
 
         await self.db.commit()

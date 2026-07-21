@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
+from typing import AsyncGenerator
 
-from app.modules.ai.providers.llm.dto import ChatMessage, ChatResponse
+from app.modules.ai.providers.llm.dto import ChatMessage, ChatResponse, ChatStreamChunk
 
 class LLMProvider(ABC):
     @abstractmethod
@@ -9,6 +10,6 @@ class LLMProvider(ABC):
         pass
     
     @abstractmethod
-    async def stream_chat(self, messages: list[ChatMessage]):
+    async def stream_chat(self, messages: list[ChatMessage]) -> AsyncGenerator[ChatStreamChunk]:
         """Send chat messages and yield response chunks."""
         pass

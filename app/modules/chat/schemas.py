@@ -8,6 +8,7 @@ class ChatRequestSchema(BaseModel):
     query: str
     top_k: int = 5
     user_id: Optional[str] = None
+    conversation_id: Optional[UUID] = None
 
 
 class RetrievedChunkSchema(BaseModel):
@@ -33,5 +34,5 @@ class ChatResponseSchema(BaseModel):
 class ChatResultSchema(BaseModel):
     response: ChatResponseSchema
     retrieved_chunks: List[RetrievedChunkSchema]
-
+    conversation_id: str
     model_config = {"from_attributes": True}

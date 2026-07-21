@@ -1,7 +1,7 @@
 from app.core.config import settings
 
 from app.modules.ai.providers.llm.base import LLMProvider
-from app.modules.ai.providers.llm.dto import ChatMessage, ChatResponse
+from app.modules.ai.providers.llm.dto import ChatMessage, ChatResponse, ChatStreamChunk
 
 from langchain_anthropic import ChatAnthropic
 
@@ -17,10 +17,21 @@ class AnthropicLLMProvider(LLMProvider):
         """Send messages to Anthropic and return a `ChatResponse`."""
         payload = [{"role": m.role, "content": m.content} for m in messages]
         response = await self.client.ainvoke(payload)
-        return ChatResponse(content=response.content, model=self.model, finish_reason=getattr(response, "finish_reason", None))
+        finish_reason = getattr(response, "response_metadata", {}).get("stop_reason")
+        return ChatResponse(content=response.content, model=self.model, finish_reason=finish_reason)
 
     async def stream_chat(self, messages: list[ChatMessage]):
         """Stream response chunks from Anthropic."""
         payload = [{"role": m.role, "content": m.content} for m in messages]
-        async for chunk in self.client.ainvoke_stream(payload):
-            yield chunk.content
+        response_stream = self.client.astream(payload)
+        async for chunk in response_stream:
+            # LangChain only populates `response_metadata` (e.g. `stop_reason`)
+            # on the final chunk of the stream, so use its presence to detect
+            # completion instead of a non-existent `is_final` attribute.
+            finish_reason = getattr(chunk, "response_metadata", {}).get("stop_reason")
+            yield ChatStreamChunk(
+                content=chunk.content,
+                model=self.model,
+                finish_reason=finish_reason,
+                is_final=finish_reason is not None,
+            )

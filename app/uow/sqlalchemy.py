@@ -4,6 +4,7 @@ from app.uow.base import UnitOfWork
 from app.modules.conversation.repository import ConversationRepository
 from app.modules.document.repository import DocumentChunkRepository, DocumentRepository
 from app.modules.ai.retrieval.repository import RetrievalChunkRepository
+from app.modules.message.repository import MessageRepository
 
 
 class SQLAlchemyUnitOfWork(UnitOfWork):
@@ -15,6 +16,7 @@ class SQLAlchemyUnitOfWork(UnitOfWork):
         self.documents = DocumentRepository(self.session)
         self.document_chunks = DocumentChunkRepository(self.session)
         self.retrieval_chunks = RetrievalChunkRepository(self.session)
+        self.messages = MessageRepository(self.session)
 
     async def __aenter__(self):
         return self
