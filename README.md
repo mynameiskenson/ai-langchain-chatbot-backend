@@ -47,9 +47,13 @@ Files: `app/router.py`, `modules/*/router.py`.
 
 Phase 7 — Dependency Injection ✅
 Goal: Scalable wiring for services and DB sessions.
-- SQLAlchemy sessions instantiated in `app/database/session.py` via `engine = create_engine(settings.database.database_url, ...)` and `SessionLocal = sessionmaker(...)`.
-- Provide DB session dependency and other shared providers via `app/core/dependecies.py` (use `Depends` in routers/services).
-Files: `app/database/session.py`, `app/core/dependecies.py`.
+- Async SQLAlchemy sessions via `AsyncSessionLocal` in `app/database/session.py`.
+- `app/core/dependencies.py` is the single place that wires everything together:
+  - `get_uow()` — an `asynccontextmanager` that opens an `AsyncSessionLocal`, wraps it in `SQLAlchemyUnitOfWork`, and yields the UoW. Services take a `uow_factory` (i.e. `get_uow`) in their constructor rather than a raw session.
+  - `get_vector_store()`, `get_embedding_provider()`, `get_llm_provider()` — build the configured AI provider (see Phase 10) based on `settings.ai`/`settings.database.VECTOR_DB`.
+  - `get_storage_provider()`, `get_health_service()` — other shared singletons.
+- Routers construct a module `service = XyzService(...)` at import time using these factories (see `modules/chat/router.py`, `modules/conversation/router.py`) rather than using FastAPI `Depends` everywhere.
+Files: `app/database/session.py`, `app/core/dependencies.py`.
 
 Phase 8 — Database Foundation ✅
 Goal: Models, mixins, and session management ready for production.
@@ -60,41 +64,57 @@ Goal: Models, mixins, and session management ready for production.
 Files: `app/database/base.py`, `app/database/mixins.py`, `app/database/session.py`, `app/database/models/*`.
 
 Phase 9 — Persistence & Migrations (brief)
-- PostgreSQL used via SQLAlchemy (URL in `app/core/config.py`).
-- Repository pattern implemented in `app/common/repository/base.py` to encapsulate CRUD.
-- Alembic configured in `alembic/` for migrations.
-- Unit of Work implemented under `uow/` to manage transactional workflows and expose repositories.
+- PostgreSQL used via async SQLAlchemy (URL in `app/core/config.py`, engine/session in `app/database/session.py`).
+- Models inherit from `app/database/models/base_model.py::BaseModel`, which combines `Base` (`app/database/base.py`) with `UUIDMixin` and `TimestampMixin` (`app/database/mixins.py`) — every table automatically gets `id` (UUID PK), `is_deleted`, `deleted_by`, `created_at`, `updated_at`, `deleted_at` for free (soft-delete friendly).
+- Repository pattern implemented in `app/common/repository/base.py` (`BaseRepository[ModelType]`) providing `list`, `get`, `create`, `create_many`, `update`, `delete`. Feature repositories (e.g. `modules/conversation/repository.py`, `modules/message/repository.py`) extend it and add query methods (e.g. `get_by_conversation`).
+- Alembic configured in `alembic/` for migrations. `alembic/env.py` imports every module's `models.py` (e.g. `app.modules.conversation.models`, `app.modules.message.models`) so autogenerate can see new tables — **new model modules must be imported there**.
+- Unit of Work implemented under `uow/` (`uow/base.py::UnitOfWork` ABC, `uow/sqlalchemy.py::SQLAlchemyUnitOfWork`) to manage transactional workflows: it owns the `AsyncSession`, instantiates every repository bound to that same session (`uow.conversations`, `uow.messages`, `uow.documents`, `uow.document_chunks`, `uow.retrieval_chunks`), and commits on clean `__aexit__` / rolls back on exception.
 - Database testing implemented under `test/` using fixtures in `test/conftest.py` and test(s) in `test/database/test_database.py`.
 
 Unit of Work & Database Testing (what to expect in this repo)
-- `uow/sqlalchemy.py` (or `uow/base.py`) should accept `SessionLocal`/engine, open a session per unit-of-work, instantiate repositories with that session, provide `commit()` and `rollback()` semantics, and ensure session cleanup.
+- `SQLAlchemyUnitOfWork.__aenter__` returns itself; `__aexit__` commits if no exception occurred (otherwise rolls back), then closes the session — so a plain `async with self.uow_factory() as uow: ...` auto-commits at the end of the block.
+- Services never construct a `SQLAlchemyUnitOfWork` directly — they receive a `uow_factory: Callable[[], UnitOfWork]` (in practice `get_uow` from `app/core/dependencies.py`) in their `__init__` and call `async with self.uow_factory() as uow:` per operation.
+- **Sharing one transaction across multiple service calls**: some services (see `modules/conversation/service.py`, `modules/message/service.py`) accept an *optional* `uow` argument on each method plus a private `_with_uow(uow, func)` helper — if a caller already has an open `uow` (e.g. `modules/chat/service.py` opening one `async with get_uow() as uow:` block to resolve a conversation, fetch history, and save the user's message atomically), it's reused instead of opening a new session; otherwise the method opens/manages its own. This keeps unrelated single calls simple while allowing related writes to be atomic when needed.
 - Tests: `test/conftest.py` provides a test DB session fixture and overrides app dependencies so tests use the test session; `test/database/test_database.py` contains asserts verifying models, repository methods, or UoW behavior.
 
+Phase 10 — AI / RAG Layer ✅
+Goal: Pluggable providers for embeddings, LLMs, and vector stores, composed into a retrieval-augmented chat flow.
+- Providers live under `modules/ai/providers/` and each follow the same shape: an abstract `base.py` (e.g. `LLMProvider`, `EmbeddingProvider`, `VectorStoreProvider`), one implementation per backend (`llm/anthropic.py`; `embeddings/ollama.py`; `vectorstore/pgvector.py`, `qdrant.py`, `pinecone.py`), a `dto.py` for request/response DTOs, and a `factory.py` (`LLMFactory`, `EmbeddingFactory`, `VectorStoreFactory`) that picks the implementation based on settings (`settings.ai.LLM_PROVIDER`, `settings.ai.EMBEDDING_PROVIDER`, `settings.database.VECTOR_DB`). `app/core/dependencies.py` exposes `get_llm_provider()`, `get_embedding_provider()`, `get_vector_store()` built from these factories.
+- `modules/ai/ingestion/` (`loader.py`, `splitter.py`, `service.py`, `dto.py`) turns uploaded documents into chunks for embedding.
+- `modules/ai/retrieval/` (`repository.py`, `service.py`, `dto.py`) runs similarity search over the vector store to fetch top-k relevant chunks for a query.
+- `modules/ai/prompt/` (`template.py`, `service.py`, `dto.py`) builds the final list of `ChatMessage`s (system/context/history/question) sent to the LLM.
+- `modules/ai/rag/service.py::RAGService` ties it together: `ask()` returns a single `RAGResponse` (retrieved chunks + full `ChatResponse`); `ask_stream()` returns a `RAGStreamResponse` (retrieved chunks + an async generator of `ChatStreamChunk`s) for streaming replies.
+- `modules/chat/service.py::ChatService` is the top-level orchestrator used by the `/chat` and `/chat/stream` routes: it resolves/creates a `Conversation`, loads recent `Message` history via `modules/message/service.py::MessageService`, calls `RAGService`, then persists the user + assistant messages.
+Files: `modules/ai/providers/*`, `modules/ai/ingestion/*`, `modules/ai/retrieval/*`, `modules/ai/prompt/*`, `modules/ai/rag/*`, `modules/chat/*`, `modules/conversation/*`, `modules/message/*`.
+
 Adding new modules / features — step-by-step
-1. Create module skeleton under `modules/` (choose a name):
-	- `modules/<feature>/router.py` — define an `APIRouter` with endpoints.
-	- `modules/<feature>/schemas.py` — Pydantic request/response models.
-	- `modules/<feature>/service.py` — business logic; call repositories or UoW here.
-	- If persistence required: add a model in `app/database/models/<feature>.py`.
+This mirrors how `modules/message/` and `modules/chat/` were added.
+
+1. Create the module skeleton under `modules/<feature>/`:
+	- `models.py` — SQLAlchemy model, only if the feature is DB-backed (see step 2).
+	- `repository.py` — extends `BaseRepository[Model]` from `app/common/repository/base.py`; add query methods here (e.g. `get_by_conversation`).
+	- `schemas.py` — Pydantic request/response models (e.g. `XyzResponseSchema` with `model_config = {"from_attributes": True}`).
+	- `service.py` — business logic; takes `uow_factory: Callable[[], UnitOfWork]` in `__init__` and does `async with self.uow_factory() as uow: ...` per operation. If the operation may need to share a transaction with a caller, accept an optional `uow: UnitOfWork | None = None` param (see the `_with_uow` helper pattern in `modules/conversation/service.py` / `modules/message/service.py`).
+	- `router.py` — define an `APIRouter`, instantiate `service = XyzService(uow_factory=get_uow)` at module level, and define endpoints that call the service and wrap results in `ApiResponse` (`app/schemas/response.py`).
 
 2. Create persistence pieces (if DB-backed):
-	- Model: extend `Base` and mixins from `app/database/base.py` and `app/database/mixins.py`.
-	- Repository: add `common/repository/<feature>.py` with a class extending `BaseRepository` or using the conventions in `app/common/repository/base.py`.
-	- Unit of Work: if a multi-repo transaction is needed, add hooks into `uow/` to expose the new repository.
+	- Model: extend `app/database/models/base_model.py::BaseModel` (gives you `id`, soft-delete fields, and timestamps for free). Use `Mapped`/`mapped_column` (SQLAlchemy 2.0 style) and add `relationship(...)` + `TYPE_CHECKING` imports for cross-module FKs (see `modules/message/models.py` ↔ `modules/conversation/models.py`).
+	- Register the model with Alembic: add `import app.modules.<feature>.models` to `alembic/env.py` so autogenerate can see the new table.
+	- Unit of Work: add `self.<feature>s = <Feature>Repository(self.session)` in `uow/sqlalchemy.py::SQLAlchemyUnitOfWork.__init__` so it's available as `uow.<feature>s` everywhere.
 
 3. Wire DI and route registration:
-	- Provide dependencies in `app/core/dependecies.py` (e.g., `get_db()` yields a session or a UoW factory).
-	- In `modules/<feature>/router.py`, use `Depends` to inject `service` constructors or DB dependencies.
-	- Register router: import and include it in `app/router.py` or `app/main.py`.
+	- Reuse the existing factories in `app/core/dependencies.py` (`get_uow`, `get_llm_provider`, `get_embedding_provider`, `get_vector_store`, etc.) — add a new `get_xyz_*()` factory here only if you're introducing a new pluggable provider.
+	- Register the router: import it and add `api_router.include_router(xyz_router, prefix=settings.app.API_V1_PREFIX, tags=["Xyz"])` in `app/router.py`.
 
 4. Add migrations:
 ```bash
-alembic revision --autogenerate -m "Add <feature> model"
+alembic revision --autogenerate -m "create_<feature>_table"
 alembic upgrade head
 ```
+	- Always review the generated migration file before running it — autogenerate can miss things like FK types (see `alembic/versions/02494cf5a198_add_foreignkey_messages_table.py`, a follow-up migration needed to convert `messages.conversation_id` to a proper UUID FK).
 
 5. Add tests:
-	- Unit tests for service logic under `test/`.
+	- Unit tests for service/repository logic under `test/` (see `test/repositories/`).
 	- Integration tests exercising HTTP routes or repository/UoW using the DB fixtures in `test/conftest.py`.
 
 6. Docs & API surface:
@@ -124,10 +144,14 @@ pytest -q
 
 Files to review when extending or debugging
 - `app/main.py` — app wiring and root endpoint
+- `app/router.py` — top-level router composition (add new feature routers here)
 - `app/core/config.py` — settings and env handling
-- `app/database/session.py` — engine/session setup
-- `app/database/mixins.py` — UUID & timestamp mixins
-- `app/common/repository/base.py` — repository conventions
-- `uow/` — unit of work implementation (transaction coordination)
+- `app/core/dependencies.py` — UoW factory (`get_uow`) and AI provider factories
+- `app/database/session.py` — async engine/session setup
+- `app/database/mixins.py`, `app/database/models/base_model.py` — UUID, soft-delete & timestamp mixins shared by every model
+- `app/common/repository/base.py` — repository conventions (`BaseRepository`)
+- `uow/base.py`, `uow/sqlalchemy.py` — unit of work implementation (transaction coordination, repository registry)
+- `modules/chat/service.py` — example of orchestrating multiple services (`ConversationService`, `MessageService`, `RAGService`) with a shared `uow`
+- `alembic/env.py` — where new model modules must be imported for autogenerate to detect them
 - `test/conftest.py` & `test/database/test_database.py` — test fixtures and DB tests
 
